@@ -52,7 +52,7 @@ unshift @$chart => (0) x ($width - @$chart);
 my %colors = qw(
     f   green
     w   red
-    c   red
+    c   cyan
     a   yellow
     i   blue
 );
