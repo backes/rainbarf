@@ -56,13 +56,20 @@ my %colors = qw(
     a   yellow
     i   blue
 );
+my %memsort = qw(
+    w   1
+    a   2
+    i   3
+    c   4
+    f   5
+);
 
 my %memory = memory();
 
 my $scale = @$chart / sum values %memory;
 my $norm = $#ticks / max @$chart => $threshold;
 my $c = 0;
-for my $type (sort keys %memory) {
+for my $type (sort { $memsort{$a} cmp $memsort{$b} } keys %memory) {
     print my_color(
         map { defined $_ ? $_ : $colors{$type} }
         $chart_fg => $chart_bg
