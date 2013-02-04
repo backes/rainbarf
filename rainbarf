@@ -4,7 +4,7 @@ use 5.008;
 use strict;
 use warnings qw(all);
 
-use List::Util qw(max sum);
+use List::Util qw(min max sum);
 use Storable qw(lock_retrieve lock_store);
 
 ## no critic (ProhibitBacktickOperators ProhibitComplexRegexes ProhibitInteractiveTest)
@@ -108,7 +108,7 @@ my %memory = memory();
 delete $memory{x} unless $swap;
 
 my $scale = $width / sum values %memory;
-my $norm = $#ticks / max @$chart => $threshold;
+my $norm = 1 / max @$chart => $threshold;
 my $c = 0;
 for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
     print my_color(
@@ -120,10 +120,10 @@ for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
         last if $c++ >= $width;
         my $sum = 0;
         $sum += shift @$chart for (1..$avg);
-        print $ticks[$norm * $sum / $avg];
+        print tick($norm * $sum / $avg);
     }
 }
-print $ticks[$norm * $cpu] if $c < $width;
+print tick($norm * $cpu) if $c < $width;
 
 battery() if $show_battery or $remaining;
 my_reset(1);
@@ -154,6 +154,17 @@ sub defaults {
                             unless defined $history;
 
     return;
+}
+
+sub tick {
+    # map $val from [0, 1] to [0, $#ticks], in the following way:
+    # (-inf .. 0.5/$#ticks)                --> 0
+    # [(i-0.5)/$#ticks .. (i+0.5)/$#ticks) --> i    for i in {1, ..., $#ticks-1}
+    # [($#ticks-0.5)/$#ticks .. inf)       --> $#ticks
+    my ($val) = @_;
+    my $pos0 = $val * @ticks - 0.5;
+    my $pos = max(0, min($#ticks, int($pos0)));
+    return $ticks[$pos];
 }
 
 sub color_idx {
@@ -453,9 +464,9 @@ sub battery_print {
                     print my_color(q(green));
                 }
             }
-            print $ticks[$#ticks * $battery];
+            print tick($battery);
         }
-    } else if ($show_battery) {
+    } elsif ($show_battery) {
         print my_color(q(black), q(black)), "  ";
     }
     if ($remaining and defined $time) {
