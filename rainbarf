@@ -281,6 +281,8 @@ sub battery {
             print my_color(q(green));
         }
         print $ticks[$#ticks * $battery];
+    } else {
+        print my_color(q(black), q(black)), "  ";
     }
 
     return;
