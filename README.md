@@ -1,10 +1,10 @@
 # NAME
 
-rainbarf - CPU/RAM stats for TUI
+rainbarf - CPU/RAM stats chart for tmux & screen
 
 # VERSION
 
-version 0.1
+version 0.2
 
 # SYNOPSIS
 
@@ -16,9 +16,10 @@ Fancy resource usage charts to put into the [tmux](http://tmux.sourceforge.net/)
 The load history chart is tinted with the following colors to reflect the system memory allocation:
 
 - __green__: free memory;
-- __red__: wired memory on _Mac OS X_, cached memory on _Linux_;
 - __yellow__: active memory;
-- __blue__: inactive memory.
+- __blue__: inactive memory;
+- __red__: wired memory on _Mac OS X_;
+- __cyan__: cached memory on _Linux_.
 
 If available, battery charge is displayed on the right.
 
@@ -54,6 +55,7 @@ Reload the tmux config by running `tmux source-file ~/.tmux.conf`.
 - \--help
 
     This.
+    To see as a manpage, use `perldoc ~/bin/rainbarf` (if you put `rainbarf` in your `~/bin`).
 
 - \--\[no\]battery
 
@@ -79,10 +81,19 @@ Reload the tmux config by running `tmux source-file ~/.tmux.conf`.
 
     Maximum load you expect before rescaling the chart. Default is 1.
 
+- \--order INDEXES
+
+    Specify the memory usage bar order.
+    The default is `fwaic` (__f__ree, __w__ired, __a__ctive, __i__nactive & __c__ached).
+
 - \--\[no\]tmux
 
     Force `tmux` colors mode.
     By default, `rainbarf` detects automatically if it is being called from `tmux` or from the interactive shell.
+
+- \--screen
+
+    [screen(1)](http://manpages.ubuntu.com/manpages/hardy/man1/screen.1.html) colors mode. __Experimental__. See ["CAVEAT"](#CAVEAT).
 
 - \--width NUMBER
 
@@ -111,12 +122,22 @@ Every `rainbarf` execution will update and rotate that file.
 Since `tmux` calls `rainbarf` periodically (every 15 seconds, by default), the chart will display load for the last ~9.5 minutes (15 \* 38).
 Thus, several `tmux` instances running simultaneously for the same user will result in a faster chart scrolling.
 
+## screen
+
+Stable `screen` version unfortunately has a broken UTF-8 handling specifically for the status bar.
+Thus, I have only tested the `rainbarf` with the variant from [git://git.savannah.gnu.org/screen.git](git://git.savannah.gnu.org/screen.git).
+My `~/.screenrc` contents:
+
+    backtick 1 15 15 rainbarf --bright --screen
+    hardstatus string "%1`"
+    hardstatus lastline
+
 # REFERENCES
 
 - [uptime(1)](http://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/uptime.1.html) is used to get the load stats if `/proc/loadavg` is unavailable.
 - [vm\_stat(1)](http://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/vm\_stat.1.html) is used to get the memory stats if `/proc/meminfo` is unavailable.
 - [ioreg(8)](http://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man8/ioreg.8.html) is used to get the battery status on _Mac OS X_.
-- [acpi(1)](http://manpages.ubuntu.com/manpages/precise/man1/acpi.1.html) is used to get the battery status on _Linux_.
+- [ACPI](http://www.tldp.org/howto/acpi-howto/usingacpi.html) is used to get the battery status on _Linux_.
 - [Battery](https://github.com/Goles/Battery) was a source of inspiration.
 - [Spark](http://zachholman.com/spark/) was another source of inspiration.
 
