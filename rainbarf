@@ -17,7 +17,7 @@ my $order   = '';
 my $screen  = 0;
 my $tmux    = not -t \*STDOUT;
 
-my ($help, $show_battery, $bolt, $chart_bg, $chart_fg, $bright, $threshold, $width);
+my ($help, $show_battery, $bolt, $chart_bg, $chart_fg, $bright, $threshold, $width, $history);
 if (@ARGV) {
     require Getopt::Long;
     Getopt::Long::GetOptions(
@@ -32,12 +32,11 @@ if (@ARGV) {
         q(screen)   => \$screen,
         q(tmux!)    => \$tmux,
         q(width=i)  => \$width,
+        q(history=s)=> \$history,
     ) or help(-verbose => 1);
 }
 
 defaults();
-
-my $history = qq($ENV{HOME}/.rainbarf.dat);
 
 my $chart = eval { lock_retrieve $history };
 $chart = [ (0) x $width ] unless defined $chart;
@@ -110,6 +109,7 @@ sub defaults {
     $width = 38 unless defined $width;
     $bright = 0 unless defined $bright;
     $bolt = (defined $bolt and $bolt) ? q(⚡) : q(|);
+    $history = qq($ENV{HOME}/.rainbarf.dat) unless defined $history;
     require Term::ANSIColor if not $tmux and not $screen;
 
     return;
@@ -306,6 +306,10 @@ Force chart foreground color.
 =item --bg COLOR_NAME
 
 Force chart background color.
+
+=item --history FILENAME
+
+File to store history data. Default is $HOME/.rainbarf.dat.
 
 =item --max NUMBER
 
