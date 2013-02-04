@@ -17,7 +17,7 @@ my $order   = '';
 my $screen  = 0;
 my $tmux    = not -t \*STDOUT;
 
-my ($help, $show_battery, $bolt, $chart_bg, $chart_fg, $bright, $threshold, $width, $history);
+my ($help, $show_battery, $bolt, $chart_bg, $chart_fg, $bright, $threshold, $width, $history, $avg);
 if (@ARGV) {
     require Getopt::Long;
     Getopt::Long::GetOptions(
@@ -33,21 +33,22 @@ if (@ARGV) {
         q(tmux!)    => \$tmux,
         q(width=i)  => \$width,
         q(history=s)=> \$history,
+        q(avg=i)=> \$avg,
     ) or help(-verbose => 1);
 }
 
 defaults();
 
 my $chart = eval { lock_retrieve $history };
-$chart = [ (0) x $width ] unless defined $chart;
+$chart = [ (0) x ($avg*$width) ] unless defined $chart;
 
 my @load = load();
 
 push @$chart => $load[0];
-splice @$chart => 0, @$chart - $width if @$chart > $width;
+splice @$chart => 0, @$chart - $avg*$width if @$chart > ($avg*$width);
 lock_store $chart => $history;
 
-unshift @$chart => (0) x ($width - @$chart);
+unshift @$chart => (0) x ($avg*$width - @$chart);
 
 # Ordering from Activity Monitor.app
 my %colors = (
@@ -68,7 +69,7 @@ for my $i (0 .. $#order) {
 
 my %memory = memory();
 
-my $scale = @$chart / sum values %memory;
+my $scale = $width / sum values %memory;
 my $norm = $#ticks / max @$chart => $threshold;
 my $c = 0;
 for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
@@ -79,7 +80,9 @@ for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
 
     for (1 .. max(1 => sprintf q(%.0f) => $scale * $memory{$type})) {
         last if $c++ >= $width;
-        print $ticks[$norm * shift @$chart];
+        my $sum = 0;
+        $sum += shift @$chart for (1..$avg);
+        print $ticks[$norm * $sum / $avg];
     }
 }
 print $ticks[$norm * $load[2]] if $c < $width;
@@ -110,6 +113,7 @@ sub defaults {
     $bright = 0 unless defined $bright;
     $bolt = (defined $bolt and $bolt) ? q(⚡) : q(|);
     $history = qq($ENV{HOME}/.rainbarf.dat) unless defined $history;
+    $avg = 1 unless defined($avg) && $avg >= 1;
     require Term::ANSIColor if not $tmux and not $screen;
 
     return;
@@ -286,6 +290,10 @@ Reload the tmux config by running C<tmux source-file ~/.tmux.conf>.
 
 This.
 To see as a manpage, use C<perldoc ~/bin/rainbarf> (if you put C<rainbarf> in your F<~/bin>).
+
+=item --avg NUMBER
+
+Average the load represented by one bar over NUMBER runs. Default is 1 measurement per bar.
 
 =item --[no]battery
 
