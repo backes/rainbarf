@@ -29,8 +29,9 @@ my $screen  = 0;
 my $tmux    = not -t \*STDOUT;
 my $rgb     = 0;
 
-my ($help, $show_battery, $remaining, $bolt, $chart_bg, $chart_fg,
-    $bright, $loadavg, $swap, $threshold, $width, $history);
+my ($help, $show_battery, $remaining, $bolt, $chart_bg,
+    $chart_fg, $bright, $loadavg, $swap, $threshold,
+    $width, $history, $avg);
 
 # parse the options file
 my $rcname = exists($ENV{RAINBARF})
@@ -66,22 +67,23 @@ if (@ARGV) {
         q(rgb!)         => \$rgb,
         q(width=i)      => \$width,
         q(datfile=s)    => \$history,
+        q(avg=i)        => \$avg,
     ) or help(-verbose => 1);
 }
 
 defaults();
 
 my $chart = eval { lock_retrieve $history };
-$chart = [ (0) x $width ] unless defined $chart;
+$chart = [ (0) x ($avg*$width) ] unless defined $chart;
 
 my %top;
 my $cpu = $loadavg ? load() : usage();
 
 push @$chart => $cpu;
-splice @$chart => 0, @$chart - $width if @$chart > $width;
+splice @$chart => 0, @$chart - $avg*$width if @$chart > ($avg*$width);
 lock_store $chart => $history;
 
-unshift @$chart => (0) x ($width - @$chart);
+unshift @$chart => (0) x ($avg*$width - @$chart);
 
 # Ordering from Activity Monitor.app
 my %colors = (
@@ -105,7 +107,7 @@ for my $i (0 .. $#order) {
 my %memory = memory();
 delete $memory{x} unless $swap;
 
-my $scale = @$chart / sum values %memory;
+my $scale = $width / sum values %memory;
 my $norm = $#ticks / max @$chart => $threshold;
 my $c = 0;
 for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
@@ -116,7 +118,9 @@ for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
 
     for (1 .. max(1 => sprintf q(%.0f) => $scale * $memory{$type})) {
         last if $c++ >= $width;
-        print $ticks[$norm * shift @$chart];
+        my $sum = 0;
+        $sum += shift @$chart for (1..$avg);
+        print $ticks[$norm * $sum / $avg];
     }
 }
 print $ticks[$norm * $cpu] if $c < $width;
@@ -143,6 +147,7 @@ sub defaults {
     $bright         = 0     unless defined $bright;
     $remaining      = 0     unless defined $remaining;
     $bolt           = (defined $bolt and $bolt) ? chr 0x26a1 : q(|);
+    $avg            = 1 unless defined($avg) && $avg >= 1;
     require Term::ANSIColor if not $tmux and not $screen;
 
     $history        = qq($ENV{HOME}/.rainbarf.dat)
@@ -450,6 +455,8 @@ sub battery_print {
             }
             print $ticks[$#ticks * $battery];
         }
+    } else if ($show_battery) {
+        print my_color(q(black), q(black)), "  ";
     }
     if ($remaining and defined $time) {
         my $sec = $time * 60;
@@ -568,6 +575,10 @@ Configuration file can be specified via C<RAINBARF> environment variable:
 =item C<--help>
 
 This.
+
+=item C<--avg NUMBER>
+
+Average the load represented by one bar over NUMBER runs. Default is 1 measurement per bar.
 
 =item C<--[no]battery>
 
