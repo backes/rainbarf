@@ -14,6 +14,7 @@ my @ticks = qw[▁ ▂ ▃ ▄ ▅ ▆ ▇ █];
 binmode \*STDOUT => q(encoding(utf8));
 
 my $order   = '';
+my $colors  = '';
 my $screen  = 0;
 my $tmux    = not -t \*STDOUT;
 
@@ -35,6 +36,7 @@ if (@ARGV) {
         q(width=i)  => \$width,
         q(history=s)=> \$history,
         q(avg=i)    => \$avg,
+        q(colors=s) => \$colors,
     ) or help(-verbose => 1);
 }
 
@@ -67,6 +69,13 @@ for my $i (0 .. $#order) {
     my $color = $order[$i];
     $colors{$color}->[1] = $i + 1
         if exists $colors{$color};
+}
+
+# Custom colors
+for my $cspec (split /,/ => lc $colors) {
+	my @f = split /:/, $cspec, 2;
+    $colors{$f[0]}->[0] = $f[1]
+        if exists $colors{$f[0]} && $f[1];
 }
 
 my %memory = memory();
@@ -386,6 +395,14 @@ Force chart foreground color.
 =item --bg COLOR_NAME
 
 Force chart background color.
+
+=item --colors COLORSPEC
+
+Specify the memory usage colors, as comma separated list of <type><color>
+entries, e.g. fyellow,igreen.
+Usable types are B<f>ree, B<w>ired, B<a>ctive, B<i>nactive, B<c>ached
+and the default is C<fgreen,wred,ayellow,iblue,ccyan>.
+Unspecified types take the default color.
 
 =item --history FILENAME
 
