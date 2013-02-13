@@ -76,16 +76,17 @@ if (@ARGV) {
 defaults();
 
 my $chart = eval { lock_retrieve $history };
-$chart = [ (0) x ($avg*$width) ] unless defined $chart;
+my $chart_len = $avg*($width-1) + 1; # 1 value for the right-most bar and <$avg> values for each other
+$chart = [ (0) x $chart_len ] unless defined $chart;
 
 my %top;
 my $cpu = $loadavg ? load() : usage();
 
 push @$chart => $cpu;
-splice @$chart => 0, @$chart - $avg*$width if @$chart > ($avg*$width);
+splice @$chart => 0, @$chart - $chart_len if @$chart > $chart_len;
 lock_store $chart => $history;
 
-unshift @$chart => (0) x ($avg*$width - @$chart);
+unshift @$chart => (0) x ($chart_len - @$chart);
 
 # Ordering from Activity Monitor.app
 my %colors = (
@@ -119,17 +120,22 @@ delete $memory{x} unless $swap;
 my $scale = $width / sum values %memory;
 my $norm = 1 / max @$chart => $threshold;
 my $c = 0;
+my $memory_sum = $scale / 2; # rounding
 for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
+	$memory_sum += $memory{$type};
+	my $bars = int($scale * $memory_sum);
+	$bars = $width if $bars > $width;
+	next if $c == $bars;
+
     print my_color(
         map { defined $_ ? $_ : $colors{$type}->[0] }
         $chart_fg => $chart_bg
     );
 
-    for (1 .. max(1 => sprintf q(%.0f) => $scale * $memory{$type})) {
-        last if $c++ >= $width;
-        my $sum = 0;
-        $sum += shift @$chart for (1..$avg);
-        print tick($norm * $sum / $avg);
+	for (;$c < $bars; ++$c) {
+		my $num_vals = @$chart > $avg ? $avg : @$chart;
+        my $sum = sum splice @$chart => 0, $num_vals;
+        print tick($norm * $sum / $num_vals);
     }
 }
 print tick($norm * $cpu) if $c < $width;
