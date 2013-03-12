@@ -109,7 +109,7 @@ for my $i (0 .. $#order) {
 
 # Custom colors
 for my $cspec (split /,/ => lc $colors) {
-	my @f = split /:/, $cspec, 2;
+    my @f = split /:/, $cspec, 2;
     $colors{$f[0]}->[0] = $f[1]
         if exists $colors{$f[0]} && $f[1];
 }
@@ -124,10 +124,10 @@ my $norm = 1 / max @chartvals => $threshold;
 my $c = 0;
 my $memory_sum = $scale / 2; # rounding
 for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
-	$memory_sum += $memory{$type};
-	my $bars = int($scale * $memory_sum);
-	$bars = $width if $bars > $width;
-	next if $c == $bars;
+    $memory_sum += $memory{$type};
+    my $bars = int($scale * $memory_sum);
+    $bars = $width if $bars > $width;
+    next if $c == $bars;
 
     print my_color(
         map { defined $_ ? $_ : $colors{$type}->[0] }
