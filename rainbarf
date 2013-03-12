@@ -81,8 +81,10 @@ for my $cspec (split /,/ => lc $colors) {
 
 my %memory = memory();
 
+my @chartvals = smooth(@$chart);
+
 my $scale = $width / sum values %memory;
-my $norm = 1 / max @$chart => $threshold;
+my $norm = 1 / max @chartvals => $threshold;
 my $c = 0;
 my $memory_sum = $scale / 2; # rounding
 for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
@@ -96,10 +98,8 @@ for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
         $chart_fg => $chart_bg
     );
 
-	for (;$c < $bars; ++$c) {
-		my $num_vals = @$chart > $avg ? $avg : @$chart;
-        my $sum = sum splice @$chart => 0, $num_vals;
-        print tick($norm * $sum / $num_vals);
+    for (;$c < $bars; ++$c) {
+        print tick($norm * shift(@chartvals));
     }
 }
 print tick($norm * $cpu) if $c < $width;
@@ -135,6 +135,18 @@ sub defaults {
     require Term::ANSIColor if not $tmux and not $screen;
 
     return;
+}
+
+sub smooth {
+    my (@vals) = @_;
+
+    return @vals if ($avg == 1);
+
+    my @smoothvals;
+    push @smoothvals, (sum splice @vals => 0 => $avg)/$avg while (@vals > $avg);
+    push @smoothvals, @vals;
+
+    return @smoothvals;
 }
 
 sub tick {
