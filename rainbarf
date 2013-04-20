@@ -120,7 +120,7 @@ delete $memory{x} unless $swap;
 my @chartvals = smooth(@$chart);
 
 my $scale = $width / sum values %memory;
-my $norm = 1 / max @chartvals => $threshold;
+my $norm = 1 / max @chartvals => $threshold => 0.01;
 my $c = 0;
 my $memory_sum = $scale / 2; # rounding
 for my $type (sort { $colors{$a}->[1] <=> $colors{$b}->[1] } keys %memory) {
