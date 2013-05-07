@@ -61,7 +61,7 @@ if (@ARGV) {
         q(bright!)      => \$bright,
         q(loadavg!)     => \$loadavg,
         q(swap!)        => \$swap,
-        q(max=i)        => \$threshold,
+        q(max=f)        => \$threshold,
         q(order=s)      => \$order,
         q(screen)       => \$screen,
         q(tmux!)        => \$tmux,
